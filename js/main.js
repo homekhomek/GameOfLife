@@ -1,20 +1,23 @@
-var curEnv = null;
-var paused = false;
-var doTheDraw = true;
+var updateToggle = true;
+var drawToggle = true;
+
 var HyperParameters = {
-    CanvasWidth: 800,
-    CanvasHeight: 200,
+    EnvWidth: 200,
+    EnvHeight: 200,
 
     PixelScalar: 4,
     DrawFood: true,
 
     CellCountLifeSpanMultiplier: 3,
-    MouthConsumptionPerTurn: 20,
+    DecomposedMouthFoodConsumption: 3,
     CellReproductionMultiplier: 3,
+    FoodLossOnDeathMultiplier: .2,
+    MaxCreatures: 600,
+
 }
 
 var CellTypes = {
-    Mouth: 0,
+    DeadMaterialMouth: 0,
     Body: 1,
     Leaf: 2
 }
@@ -22,24 +25,28 @@ var CellTypes = {
 
 
 function setup() {
-    createCanvas(HyperParameters.CanvasWidth, HyperParameters.CanvasHeight);
-    curEnv = new Environment(HyperParameters.CanvasWidth / HyperParameters.PixelScalar, HyperParameters.CanvasHeight / HyperParameters.PixelScalar, 0);
+    createCanvas(HyperParameters.EnvWidth * HyperParameters.PixelScalar, HyperParameters.EnvHeight * HyperParameters.PixelScalar);
+    curEnv = new Environment(HyperParameters.EnvWidth, HyperParameters.EnvHeight, 0);
 
     var dna = new DNA();
     dna.anatomy.push(new CellDNA(CellTypes.Leaf, new Vec2(0, 0)));
     dna.anatomy.push(new CellDNA(CellTypes.Body, new Vec2(0, 1)));
-    var spawnPos = new Vec2(Math.floor(180), Math.floor(curEnv.dims.y / 2));
+    var spawnPos = new Vec2(Math.floor(40), 40);
 
     var c = new Creature(curEnv, spawnPos, dna, 150);
 
     curEnv.addCreature(c);
+
 }
 
 
 function draw() {
-    background(0);
+    background(46, 34, 47);
 
-    curEnv.update();
-    if (doTheDraw)
+
+    if (updateToggle)
+        curEnv.update();
+
+    if (drawToggle)
         curEnv.draw();
 }

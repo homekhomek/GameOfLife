@@ -1,13 +1,18 @@
 class DNA {
     anatomy = [];
+    mutationRate = 0.1;
+    foodForBabyRate = 1.5;
+    foodKeptOnReproduce = 1.0;
 
     constructor() {
 
     }
 
     mutate() {
-        if (Math.random() < 0.1) {
-            if (Math.random() < 0.4) { // Add a cell
+
+        // Mutate DNA
+        if (Math.random() < this.mutationRate) {
+            if (Math.random() < 0.33) { // Add a cell
                 this.anatomy.push(new CellDNA(this.getRandomCellType(), this.getNewCellLocation()));
             }
             else if (Math.random() < .5 && this.anatomy.length > 1) {
@@ -18,6 +23,29 @@ class DNA {
             }
         }
 
+        // Flucuate Mutation Rate
+        if (Math.random() < .66) {
+            if (Math.random() > .5)
+                this.mutationRate += .01;
+            else
+                this.mutationRate -= .01;
+        }
+
+        // Flucuate Food Reproduction Rate
+        if (Math.random() < .66) {
+            if (Math.random() > .5)
+                this.foodForBabyRate += .05;
+            else
+                this.foodForBabyRate -= .05;
+        }
+
+        // Flucuate Food Reproduction Rate
+        if (Math.random() < .66) {
+            if (Math.random() > .5)
+                this.foodKeptOnReproduce += .05;
+            else
+                this.foodKeptOnReproduce -= .05;
+        }
     }
 
     getRandomCellType() {
@@ -47,6 +75,8 @@ class DNA {
 
     copyDNA() {
         var newDNA = new DNA();
+        newDNA.mutationRate = this.mutationRate;
+        newDNA.reproduceFoodRate = this.reproduceFoodRate;
 
         for (var i = 0; i < this.anatomy.length; i++) {
             newDNA.anatomy.push(new CellDNA(this.anatomy[i].cellType, this.anatomy[i].localPos.dup()));

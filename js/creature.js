@@ -19,6 +19,7 @@ class Creature {
     alive = true;
     lifespan = 300;
     maturity = 0;
+    waterAmt = 0;
 
     constructor(myEnv, pos, dna, startingFood = 0) {
         this.env = myEnv;
@@ -42,19 +43,22 @@ class Creature {
     }
 
     getLifeSpan() {
-        return this.dna.anatomy.length * 200;
+        return this.dna.anatomy.length * 50;
     }
 
     getTotalCost() {
         return this.cells.reduce((tot, curCell) => { return tot + curCell.getCellCost() }, 0);
     }
 
+
     die() {
         this.getUp(); // Remove from the collision map
 
+        this.foodAmt *= HyperParameters.FoodLossOnDeathMultiplier;
+
         /* corpse add food to world */
         this.cells.forEach(curCell => {
-            this.env.FoodGrid.addValueVec(curCell.getWorldPos(), curCell.getCellCost());
+            this.env.FoodGrid.addValueVec(curCell.worldPos, curCell.getCellCost() + Math.floor(this.foodAmt / (this.cells.length)));
         })
 
 
@@ -63,22 +67,22 @@ class Creature {
 
     getUp() {
         this.cells.forEach(curCell => {
-            this.env.CollisionGrid.setValueVec(curCell.getWorldPos(), 0);
-            this.env.CellGrid.setValueVec(curCell.getWorldPos(), null);
+            this.env.CollisionGrid.setValueVec(curCell.worldPos, 0);
+            this.env.CellGrid.setValueVec(curCell.worldPos, null);
         })
     }
 
     sitDown() {
         this.cells.forEach(curCell => {
-            this.env.CollisionGrid.setValueVec(curCell.getWorldPos(), 1);
-            this.env.CellGrid.setValueVec(curCell.getWorldPos(), curCell.cellType);
+            this.env.CollisionGrid.setValueVec(curCell.worldPos, 1);
+            this.env.CellGrid.setValueVec(curCell.worldPos, curCell.cellType);
         })
     }
 
     isColliding() {
         for (var i = 0; i < this.cells.length; i++) {
             var curCell = this.cells[i];
-            if (this.env.CollisionGrid.getValueVec(curCell.getWorldPos())) {
+            if (this.env.CollisionGrid.getValueVec(curCell.worldPos)) {
                 return true;
             }
         }
@@ -115,7 +119,7 @@ class Creature {
         return false
     }
 
-    update() {
+    lifeUpdate() {
         if (!this.alive)
             return;
 
@@ -124,21 +128,23 @@ class Creature {
             curCell.update(this.env);
         })
 
-        if (this.maturity >= this.dna.anatomy.length) {
-            /* Reproduce? */
-            if (this.foodAmt >= this.getTotalCost() * 2.5) {
-                this.attemptReproduce();
-            }
-        }
-        else {
+        if (this.maturity < this.dna.anatomy.length) {
             this.attemptToGrow();
+
         }
 
         this.lifetime++;
 
         /* Life check */
-        if (this.lifetime > this.lifespan || this.foodAmt <= 0) {
+        if (this.lifetime > this.lifespan || this.foodAmt <= 0 || this.waterAmt < 0) {
             this.die();
+        }
+    }
+
+    reproduceUpdate() {
+        /* Reproduce? */
+        if (this.env.creatures.length < HyperParameters.MaxCreatures && this.foodAmt >= this.getTotalCost() * (this.dna.foodForBabyRate + this.dna.foodKeptOnReproduce)) {
+            this.attemptReproduce();
         }
     }
 
@@ -146,13 +152,15 @@ class Creature {
         var nextCellDNA = this.dna.anatomy[this.maturity];
 
         this.attemptBuildCell(nextCellDNA);
+
+        this.sitDown();
     }
 
 
     getRandomReproductionSpot() {
         var angle = Math.random() * 2 * Math.PI;
 
-        var radius = Math.random() * (this.radius * 4 - this.radius * 2) + this.radius * 2;
+        var radius = Math.random() * (this.radius * 2) + this.radius * 2;
 
         var x = Math.floor(radius * Math.cos(angle) + .5);
         var y = Math.floor(radius * Math.sin(angle) + .5);
@@ -161,13 +169,13 @@ class Creature {
     }
 
     attemptReproduce() {
-        this.foodAmt -= Math.floor(this.getTotalCost() * 1.5);
+        this.foodAmt -= Math.floor(this.getTotalCost() * this.dna.foodForBabyRate);
         var newDNA = this.dna.copyDNA();
         newDNA.mutate();
 
         var reproductionPos = this.getRandomReproductionSpot();
 
-        var creature = new Creature(this.env, reproductionPos, newDNA, Math.floor(this.getTotalCost() * 1.5));
+        var creature = new Creature(this.env, reproductionPos, newDNA, Math.floor(this.getTotalCost() * this.dna.foodForBabyRate));
 
         if (!creature.isColliding()) {
             this.env.addCreature(creature);
